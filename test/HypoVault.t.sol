@@ -149,6 +149,18 @@ contract HypoVaultTest is Test {
         uint256 totalSupplyBefore = vault.totalSupply();
         uint256 nav = depositAmount;
         uint256 totalAssets = nav + 1 - depositAmount - vault.reservedWithdrawalAssets(); // = 1
+        
+        /*
+        function calculateExpectedShares(
+        uint256 assetsToFulfill,
+        uint256 totalAssets,
+        uint256 totalSupply
+        ) internal pure returns (uint256) {
+        return Math.mulDiv(assetsToFulfill, totalSupply, totalAssets);
+        }
+        
+        */
+        
         uint256 expectedShares = calculateExpectedShares(
             depositAmount,
             totalAssets,

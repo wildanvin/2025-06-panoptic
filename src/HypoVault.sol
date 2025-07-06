@@ -6,12 +6,12 @@ import {ERC20Minimal} from "lib/panoptic-v1.1/contracts/tokens/ERC20Minimal.sol"
 import {IERC20} from "lib/panoptic-v1.1/lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IVaultAccountant} from "./interfaces/IVaultAccountant.sol";
 // Base
-import {Multicall} from "lib/panoptic-v1.1/contracts/base/Multicall.sol";
-import {Ownable} from "lib/panoptic-v1.1/lib/openzeppelin-contracts/contracts/access/Ownable.sol";
+import {Multicall} from "lib/panoptic-v1.1/contracts/base/Multicall.sol"; //@audit multicall used, does it handle it correctly? does it accept ETH?
+import {Ownable} from "lib/panoptic-v1.1/lib/openzeppelin-contracts/contracts/access/Ownable.sol"; //@audit it seems that it is copying the contract. maybe some compatibilities?
 // Libraries
 import {Address} from "lib/panoptic-v1.1/lib/openzeppelin-contracts/contracts/utils/Address.sol";
 import {Math} from "lib/panoptic-v1.1/contracts/libraries/Math.sol";
-import {SafeTransferLib} from "lib/panoptic-v1.1/contracts/libraries/SafeTransferLib.sol";
+import {SafeTransferLib} from "lib/panoptic-v1.1/contracts/libraries/SafeTransferLib.sol"; //@audit own safeTransfer implementation
 
 /// @author Axicon Labs Limited
 /// @notice A vault in which a manager allocates assets deposited by users and distributes profits asynchronously.
@@ -154,7 +154,7 @@ contract HypoVault is ERC20Minimal, Multicall, Ownable {
     uint128 public depositEpoch;
 
     /// @notice Assets in the vault reserved for fulfilled withdrawal requests.
-    uint256 public reservedWithdrawalAssets;
+    uint256 public reservedWithdrawalAssets; //@audit looks like  reservedWithdrawalAssets is not properly initializedif it os not properly initialized, users wont be able to withdraw
 
     /// @notice Contains information about the quantity of assets requested and fulfilled for deposits in each epoch.
     mapping(uint256 epoch => DepositEpochState) public depositEpochState;
@@ -187,7 +187,7 @@ contract HypoVault is ERC20Minimal, Multicall, Ownable {
         manager = _manager;
         accountant = _accountant;
         performanceFeeBps = _performanceFeeBps;
-        totalSupply = 1_000_000;
+        totalSupply = 1_000_000; // @audit it dows not mint anything to the contract itself, it is suceptible to manipulation
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -241,10 +241,10 @@ contract HypoVault is ERC20Minimal, Multicall, Ownable {
 
     /// @notice Requests a withdrawal of shares.
     /// @param shares The amount of shares to withdraw
-    function requestWithdrawal(uint128 shares) external {
+    function requestWithdrawal(uint128 shares) external { //@audit maybe something about about the uint128 not beig used properly?
         uint256 _withdrawalEpoch = withdrawalEpoch;
 
-        PendingWithdrawal memory pendingWithdrawal = queuedWithdrawal[msg.sender][_withdrawalEpoch];
+        PendingWithdrawal memory pendingWithdrawal = queuedWithdrawal[msg.sender][_withdrawalEpoch]; //@audit it is reading from memory. it it doing it well?
 
         uint256 previousBasis = userBasis[msg.sender];
 
@@ -256,7 +256,7 @@ contract HypoVault is ERC20Minimal, Multicall, Ownable {
 
         queuedWithdrawal[msg.sender][_withdrawalEpoch] = PendingWithdrawal({
             amount: pendingWithdrawal.amount + shares,
-            basis: uint128(pendingWithdrawal.basis + withdrawalBasis)
+            basis: uint128(pendingWithdrawal.basis + withdrawalBasis) //@audit here it is casting to uint128
         });
 
         withdrawalEpochState[_withdrawalEpoch].sharesWithdrawn += shares;
